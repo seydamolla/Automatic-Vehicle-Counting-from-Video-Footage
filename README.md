@@ -34,6 +34,10 @@ python scripts/run_counter.py data/raw/example.mp4 --line 100 300 850 300
 
 Çıktılar `outputs/annotated.mp4` ve `outputs/counts.csv` altında oluşur. İlk çalıştırmada Ultralytics seçili model ağırlığını indirebilir.
 
+## Web arayüzü taslağı
+
+`web/index.html`, sayım ekranının temel web taslağıdır. Gerçek video işleme Python betiği ile çalışır; tarayıcı tarafında model çalıştırmaz.
+
 ## Değerlendirme planı
 
 Resmî UA-DETRAC 60/40 eğitim-test ayrımı korunur. Model, çözünürlük ve çizgi ayarları yalnızca eğitim videolarıyla seçilir; test videoları ayarlar dondurulduktan sonra bir kez çalıştırılır. Değerlendirme toplam ve video bazlı sayım hatası, eşleşme oranı ile üç koşunun ortanca FPS değerini raporlar.
