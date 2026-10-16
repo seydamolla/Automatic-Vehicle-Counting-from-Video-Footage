@@ -1,0 +1,25 @@
+[project]
+name = "visionflow-vehicle-counter"
+version = "0.1.0"
+description = "Line-crossing vehicle counter for UA-DETRAC videos"
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+
