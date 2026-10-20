@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from math import hypot
 
-
 Point = tuple[float, float]
 
 
@@ -94,7 +93,9 @@ class LineCounter:
         if not state.counted and state.stable_side != current_side:
             crossing_projection = self.line.projection(bottom_center)
             if -self.projection_margin <= crossing_projection <= 1 + self.projection_margin:
-                direction = Direction.POSITIVE if state.stable_side < current_side else Direction.NEGATIVE
+                direction = (
+                    Direction.POSITIVE if state.stable_side < current_side else Direction.NEGATIVE
+                )
                 self._counts[direction] += 1
                 state.counted = True
         state.stable_side = current_side
@@ -104,4 +105,3 @@ class LineCounter:
     def counts(self) -> dict[str, int]:
         """Return a JSON/CSV-friendly snapshot of directional counts."""
         return {direction.value: count for direction, count in self._counts.items()}
-

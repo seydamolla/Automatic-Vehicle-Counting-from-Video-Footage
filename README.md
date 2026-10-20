@@ -1,49 +1,93 @@
 # Video Görüntülerinden Otomatik Araç Sayımı
 
-Grup 31 (VisionFlow) için UA-DETRAC tabanlı araç sayım projesi. Sistem, hazır bir Ultralytics YOLO modeliyle araçları tespit eder, ByteTrack ile takip eder ve sanal çizgiyi geçen her aracı yönüne göre yalnızca bir kez sayar.
+Grup 31 (VisionFlow) için geliştirilen bu uygulama, yüklenen trafik videolarındaki otomobil, otobüs ve kamyonları hazır YOLO modeliyle tespit eder, ByteTrack ile izler ve kullanıcı tarafından belirlenen sanal çizgiyi geçen araçları iki yönde ayrı ayrı sayar.
 
-## İlk iki hafta çıktıları
+## Çalışan özellikler
 
-- Problem, kapsam ve gereksinimler tanımlandı.
-- UA-DETRAC veri seti için yerel klasör düzeni ve resmî indirme yönergesi eklendi.
-- Sanal çizgi geçiş sayacı yazıldı.
-- Düz geçiş, iki yön, çizgi titremesi, geri dönüş, çizgi dışı geçiş ve kimlik değişimi senaryoları için testler eklendi.
-- YOLO + ByteTrack ile video üzerinde çalışıp işaretli MP4 ve CSV üreten başlangıç komutu eklendi.
+- Aynı işlemde 1-5 video yükleme
+- Video önizlemesi üzerinde sürüklenebilir sayım çizgisi
+- YOLO11n, YOLO11s veya YOLO11m model seçimi
+- ByteTrack ile araç kimliği takibi
+- Her takip kimliğini yalnızca ilk çizgi geçişinde sayma
+- Pozitif, negatif ve toplam sayaçlar
+- İşaretli MP4 ve geçiş ayrıntılarını içeren CSV çıktısı
+- Dosya türü, çizgi ve yükleme boyutu doğrulaması
+- Komut satırı ve web arayüzü desteği
 
-## Kurulum
+## Windows'ta hızlı başlangıç
 
-Python 3.11 veya daha yenisini kullanın.
+Python 3.11 kurulu olmalıdır. PowerShell'de proje klasörüne geçip aşağıdaki komutu çalıştırın:
 
-```bash
-python -m venv .venv
-.venv\\Scripts\\activate
-pip install -r requirements.txt
-pip install -e .
-pytest
+```powershell
+.\start.ps1
 ```
 
-## Veri seti
+İlk kurulumda Python paketleri ve ilk çalıştırmada seçilen model ağırlığı indirilir. Sunucu açıldığında tarayıcıdan `http://127.0.0.1:8000` adresine gidin.
 
-Veri seti kurulumu için [data/README.md](data/README.md) dosyasını izleyin. Büyük görüntü/video arşivleri GitHub'a eklenmez; yalnızca yapılandırma, kod ve küçük lisansı uygun örnekler sürüm kontrolünde tutulur.
+## Elle kurulum
 
-## Başlangıç demosu
-
-```bash
-python scripts/run_counter.py data/raw/example.mp4 --line 100 300 850 300
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m uvicorn vehicle_counter.app:app --host 127.0.0.1 --port 8000
 ```
 
-Çıktılar `outputs/annotated.mp4` ve `outputs/counts.csv` altında oluşur. İlk çalıştırmada Ultralytics seçili model ağırlığını indirebilir.
+## Kullanım
 
-## Web arayüzü taslağı
+1. Bir veya birkaç trafik videosu seçin.
+2. İlk videonun önizlemesindeki sarı çizginin uçlarını sürükleyin.
+3. Gerekirse model ve güven eşiğini değiştirin.
+4. **Araç sayımını başlat** düğmesine basın.
+5. Her video için yön sayaçlarını inceleyin; işaretli videoyu ve CSV dosyasını indirin.
 
-`web/index.html`, sayım ekranının temel web taslağıdır. Gerçek video işleme Python betiği ile çalışır; tarayıcı tarafında model çalıştırmaz.
+Çizgi koordinatları normalize edildiği için aynı konum, farklı çözünürlükteki tüm yüklü videolara ölçeklenir. En doğru sonuç için videoların benzer kamera açısından çekilmiş olması önerilir.
 
-## Değerlendirme planı
+## Komut satırı
 
-Resmî UA-DETRAC 60/40 eğitim-test ayrımı korunur. Model, çözünürlük ve çizgi ayarları yalnızca eğitim videolarıyla seçilir; test videoları ayarlar dondurulduktan sonra bir kez çalıştırılır. Değerlendirme toplam ve video bazlı sayım hatası, eşleşme oranı ile üç koşunun ortanca FPS değerini raporlar.
+```powershell
+.\.venv\Scripts\python.exe scripts\run_counter.py data\raw\ornek.mp4 --line 0.1 0.65 0.9 0.65
+```
+
+Komut satırındaki çizgi koordinatları 0 ile 1 arasındadır. Çıktılar varsayılan olarak `outputs/cli` klasörüne yazılır.
+
+## Test ve kalite kontrolleri
+
+Geliştirme bağımlılıklarını kurduktan sonra:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m ruff check src tests scripts
+.\.venv\Scripts\python.exe -m black --check src tests scripts
+.\.venv\Scripts\python.exe -m mypy src
+```
+
+Otomatik testlerde çizgi geçişinin altı kabul senaryosu ve iki videolu web iş akışı model indirmeden doğrulanır.
+
+## Veri seti ve değerlendirme
+
+UA-DETRAC'ın resmî 60 eğitim / 40 test video ayrımı korunur. Ayarlar eğitim videolarında belirlenir; test videoları ayarlar dondurulduktan sonra değerlendirilir. Kapsam otomobil, otobüs ve kamyondur; UA-DETRAC etiketlerinde bulunmayan motosikletler değerlendirme dışıdır.
+
+Değerlendirmede toplam sayım hatası, video bazlı hata, eşleşen çizgi geçişlerinin kesinlik/duyarlılık/F1 değerleri ve üç çalıştırmanın ortanca FPS değeri raporlanacaktır.
+
+## Proje yapısı
+
+- `src/vehicle_counter/counter.py`: deterministik çizgi geçiş mantığı
+- `src/vehicle_counter/processing.py`: YOLO, ByteTrack, video ve CSV üretimi
+- `src/vehicle_counter/app.py`: web servisi ve yükleme API'si
+- `web/`: kullanıcı arayüzü
+- `tests/`: birim ve uçtan uca API testleri
+- `data/README.md`: UA-DETRAC veri düzeni
+
+## Notlar
+
+- İlk model çalıştırması internet bağlantısı gerektirir; ağırlık dosyası daha sonra önbellekten kullanılır.
+- GPU varsa Ultralytics otomatik olarak kullanabilir; CPU'da da çalışır ancak daha yavaştır.
+- Büyük veri setleri ve model ağırlıkları GitHub deposuna eklenmez.
 
 ## Kaynaklar
 
 - [UA-DETRAC resmî proje sayfası](https://sites.google.com/view/daweidu/projects/ua-detrac)
-- [Ultralytics](https://docs.ultralytics.com/)
-Bilgisayar Mühendisliği Tasarım Dersi Projesi
+- [Ultralytics dokümantasyonu](https://docs.ultralytics.com/)
+- [ByteTrack makalesi](https://arxiv.org/abs/2110.06864)

@@ -1,6 +1,77 @@
 <!doctype html>
-<html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VisionFlow Araç Sayımı</title>
-<style>body{margin:0;font:16px Arial;background:#f5f8fb;color:#132b44}header{padding:48px 10%;background:#12617d;color:#fff}main{max-width:920px;margin:28px auto;padding:0 20px;display:grid;gap:20px}.card{background:#fff;border:1px solid #d8e2ea;border-radius:14px;padding:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.count{padding:18px;background:#e8f6f1;border-radius:10px;font-size:20px}.count b{display:block;font-size:36px}button{background:#1769aa;color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:bold;cursor:pointer}input{padding:10px;border:1px solid #b8c7d4;border-radius:7px;width:100%}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style>
-<header><h1>VisionFlow Araç Sayımı</h1><p>YOLO + ByteTrack ile sanal çizgi geçişlerini yön bazında sayın.</p></header>
-<main><section class="card"><h2>Demo sayımı</h2><p>Yerel uygulamada MP4 seçilir, çizgi belirlenir ve işaretli video ile CSV alınır.</p><label>Çizgi koordinatları</label><input value="100 300 850 300"><p><button id="run">Demo sayımını çalıştır</button></p><span id="status">Hazır.</span></section><section class="grid"><div class="count">↗ Pozitif yön<b id="plus">0</b></div><div class="count">↙ Negatif yön<b id="minus">0</b></div></section><section class="card"><h2>İşleyiş</h2><ol><li>Araçlar tespit edilir.</li><li>ByteTrack araç kimliğini korur.</li><li>Alt orta nokta çizgiyi geçince araç yalnızca bir kez sayılır.</li></ol></section></main>
-<script>document.querySelector('#run').onclick=()=>{plus.textContent='12';minus.textContent='9';status.textContent='Demo tamamlandı. Gerçek sonuçlar Python sayım motorundan gelir.'}</script>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="YOLO ve ByteTrack ile videodan otomatik araç sayımı">
+  <title>VisionFlow Araç Sayımı</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero__inner">
+      <p class="eyebrow">Grup 31 · VisionFlow</p>
+      <h1>Video Görüntülerinden Otomatik Araç Sayımı</h1>
+      <p class="hero__copy">Videolarınızı yükleyin, sayım çizgisini görüntü üzerinde ayarlayın ve yön bazlı sonuçları alın.</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card setup" aria-labelledby="setup-title">
+      <div class="section-heading">
+        <span class="step">1</span>
+        <div><h2 id="setup-title">Videoları seçin</h2><p>Bir seferde en fazla 5 trafik videosu işlenebilir.</p></div>
+      </div>
+      <label class="dropzone" for="videos">
+        <input id="videos" type="file" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska" multiple>
+        <span class="dropzone__icon" aria-hidden="true">＋</span>
+        <strong>Video seçmek için tıklayın</strong>
+        <span>MP4, MOV, AVI veya MKV · dosya başına en fazla 500 MB</span>
+      </label>
+      <ul id="file-list" class="file-list" aria-live="polite"></ul>
+    </section>
+
+    <section class="card preview" aria-labelledby="line-title">
+      <div class="section-heading">
+        <span class="step">2</span>
+        <div><h2 id="line-title">Sayım çizgisini ayarlayın</h2><p>Sarı çizginin iki ucunu sürükleyerek yolun üzerine yerleştirin.</p></div>
+      </div>
+      <div id="stage" class="stage">
+        <video id="preview-video" muted controls playsinline></video>
+        <canvas id="line-canvas"></canvas>
+        <div id="preview-empty" class="stage__empty">Önizleme için ilk videoyu seçin</div>
+      </div>
+      <div class="controls-grid">
+        <label>Model
+          <select id="model">
+            <option value="yolo11n.pt">Hızlı · YOLO11n</option>
+            <option value="yolo11s.pt">Dengeli · YOLO11s</option>
+            <option value="yolo11m.pt">Daha güçlü · YOLO11m</option>
+          </select>
+        </label>
+        <label>Güven eşiği <output id="confidence-value">0.25</output>
+          <input id="confidence" type="range" min="0.05" max="0.95" step="0.05" value="0.25">
+        </label>
+      </div>
+    </section>
+
+    <section class="card run-card" aria-labelledby="run-title">
+      <div class="section-heading">
+        <span class="step">3</span>
+        <div><h2 id="run-title">Sayımı çalıştırın</h2><p>İlk kullanımda model ağırlığı indirileceği için biraz daha uzun sürebilir.</p></div>
+      </div>
+      <button id="run" class="primary" type="button">Araç sayımını başlat</button>
+      <div id="status" class="status" role="status" aria-live="polite">Hazır</div>
+      <div id="progress" class="progress" hidden><span></span></div>
+    </section>
+
+    <section id="results-section" class="results" aria-labelledby="results-title" hidden>
+      <div class="results__heading"><p class="eyebrow">İşlem tamamlandı</p><h2 id="results-title">Sonuçlar</h2></div>
+      <div id="results" class="results-grid"></div>
+    </section>
+  </main>
+
+  <footer>VisionFlow · Fırat Üniversitesi Bilgisayar Mühendisliği Tasarım Projesi</footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

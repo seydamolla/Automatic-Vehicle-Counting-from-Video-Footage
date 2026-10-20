@@ -41,4 +41,3 @@ def test_new_identity_after_crossing_does_not_duplicate_prior_track() -> None:
     assert feed(counter, 7, [(5, -3), (5, 3)]) == [Direction.POSITIVE]
     # A new tracker identity first observed after the line cannot reconstruct a crossing.
     assert feed(counter, 99, [(5, 3), (5, 4)]) == []
-
